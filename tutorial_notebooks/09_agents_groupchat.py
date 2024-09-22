@@ -1,17 +1,18 @@
 from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
-
+import os
+os.environ["AUTOGEN_USE_DOCKER"] = "False"
 
 config_list = [
-        {
-        'model': 'gpt-4o',
-        'api_key': '' # ใส่ OpenAI API ที่นี่
-        }
-    ]
+    {
+    'model': 'gpt-4o',
+    'api_key': '' # ใส่ OpenAI API ที่นี่
+    }
+]
 llm_config={
-            "config_list": config_list,
-            "temperature": 0.7,
-            "cache_seed": None,
-        }
+    "config_list": config_list,
+    "temperature": 0.7,
+    "cache_seed": None
+}
 
 # %%
 MENU = """
