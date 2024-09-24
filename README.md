@@ -1,4 +1,5 @@
 # CPF Generative AI Workshop
+<img width="400" src="assets/logo.png">
 
 Repository นี้ประกอบด้วยโค้ดสำหรับการประชุมเชิงปฏิบัติการ Generative AI สำหรับ CPF workshop
 
@@ -6,6 +7,18 @@ Repository นี้ประกอบด้วยโค้ดสำหรับ
 
 - `tutorial_notebooks` ประกอบด้วย Jupyter notebooks สำหรับบทเรียน
 - `data` ประกอบด้วยข้อมูลที่เกี่ยวข้องกับบทเรียนนี้
+
+## การติดตั้ง library ต่างๆ
+สร้าง virtual environment
+```
+$ python -m venv ./.venv
+```
+```
+$ source .venv/bin/activate
+```
+```
+$ pip install -r requirements.txt
+```
 
 ## ข้อมูลเพิ่มเติม
 
