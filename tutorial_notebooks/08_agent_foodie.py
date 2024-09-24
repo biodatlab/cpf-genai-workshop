@@ -1,6 +1,3 @@
-
-# Install autogen and streamlit using `pip install autogen streamlit`
-
 import streamlit as st
 from autogen import ConversableAgent, UserProxyAgent
 
@@ -8,7 +5,7 @@ def create_agents():
     config_list = [
         {
         'model': 'gpt-4o-mini',
-        'api_key': "" # ใส่ OpenAI API ที่นี่ 
+        'api_key': "..." # ใส่ OpenAI API ที่นี่ 
         }
     ]
     assistant = ConversableAgent(

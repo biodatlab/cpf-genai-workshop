@@ -5,7 +5,7 @@ os.environ["AUTOGEN_USE_DOCKER"] = "False"
 config_list = [
     {
     'model': 'gpt-4o',
-    'api_key': '' # ใส่ OpenAI API ที่นี่
+    'api_key': '...' # ใส่ OpenAI API ที่นี่
     }
 ]
 llm_config={
