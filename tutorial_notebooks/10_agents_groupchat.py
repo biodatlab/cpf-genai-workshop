@@ -1,20 +1,28 @@
-from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
-import os
-os.environ["AUTOGEN_USE_DOCKER"] = "False"
+import streamlit as st
+from autogen import AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat
+
 
 config_list = [
     {
-    'model': 'gpt-4o',
-    'api_key': '...' # ใส่ OpenAI API ที่นี่
+    'model': 'gpt-4o-mini',
+    'api_key': "..." # ใส่ OpenAI API ที่นี่ 
     }
 ]
-llm_config={
-    "config_list": config_list,
-    "temperature": 0.7,
-    "cache_seed": None
-}
 
-# %%
+user_proxy = UserProxyAgent(
+    name="Customer",
+    # system_message="Customer\n do not end the conversation before step 7",
+    human_input_mode="NEVER",
+    max_consecutive_auto_reply=0,
+    # code_execution_config=False,
+    code_execution_config={
+        "last_n_messages": 7,
+        "work_dir": "groupchat",
+        "use_docker": False,
+    },
+        
+)
+
 MENU = """
 # Menu
 - *ข้าวมันไก่* 40 บาท
@@ -25,49 +33,20 @@ MENU = """
 ใส่ห่อกลับบ้าน +5 บาท
 """
 
-# %%
-user_proxy = UserProxyAgent(
-    name="User_proxy",
+waiter1 = AssistantAgent(
+    name="waiter1",
+    llm_config={
+        "config_list": config_list,
+        "temperature": 0.7,
+        "cache_seed": None,
+    },
     system_message="""
-You are a security guard at a restaurant. Your duties are:
-1. Greet customers politely.
-2. Check if customers are talking about food or placing orders.
-3. If customers are not talking about food or placing orders, respond with:
-"I apologize, we only provide food services. If you'd like to order food or ask about the menu, please let me know."
-4. If there are questions about food or ordering, call a waiter to assist.
-
-Always respond in Thai, using polite language (ending sentences with ครับ/ค่ะ as appropriate).
-    """,
-    human_input_mode="ALWAYS"
-)
-
-guard = AssistantAgent(
-    name="Guard",
-    llm_config=llm_config,
-    system_message=f"""
-You are a security guard at a restaurant. Your duties are:
-1. Greet customers politely.
-2. Check if customers are talking about food or placing orders.
-3. If customers are not talking about food or placing orders, respond with:
-   "I apologize, we only provide food services. If you'd like to order food or ask about the menu, please let me know."
-4. If there are questions about food or ordering, call a waiter to assist.
-
-Always respond in Thai, using polite language (ending sentences with ครับ/ค่ะ as appropriate).
-    """,
-    description="A helpful guard at a restaurant",
-    human_input_mode="NEVER"
-)
-
-
-waiter = AssistantAgent(
-    name="Waiter",
-    llm_config=llm_config,
-    system_message=f"""
-You are a waiter at a restaurant. Your duties are:
+You are a waiter1 at a restaurant. Your duties are:
 1. Take orders from customers.
 2. Recommend menu items.
 3. Answer questions about the menu.
-4. If customers ask about the total price, call the cashier to calculate.
+4. Confirm orders with customers.
+5. If customers ask about the total price, call the cashier to calculate. if not update the order and ask the customer if they want to order anything else.
 
 Menu:
 {MENU}
@@ -79,41 +58,124 @@ Additional instructions:
 
 Always respond in Thai, using polite language (ending sentences with ครับ/ค่ะ as appropriate).
 """
-    ,
-    description="A helpful waiter at a restaurant",
-    human_input_mode="NEVER"
 )
 
 cachier = AssistantAgent(
     name="cashier",
-    llm_config=llm_config,
+    llm_config={
+        "config_list": config_list,
+        "temperature": 0.7,
+        "cache_seed": None,
+    },
     description="A cashier at a restaurant",
     system_message="""
 You are a cashier at a restaurant. Your duties are:
-1. Calculate the total price of food ordered by customers.
-2. Show the calculation process step by step.
-3. Inform customers of the total price.
-4. Answer questions about payment or promotions (if any).
-
+1. Recieve orders from waiters.
+2. Calculate the total price of food ordered by customers using given menu and prices.
+3. The unit price is in baht.
 Menu and prices:
 {MENU}
-
-Additional instructions:
-- Use polite and friendly language with customers.
-- Double-check your calculations for accuracy.
-- If there are promotions or discounts, inform customers and recalculate the price.
-
-Always respond in Thai, using polite language (ending sentences with ครับ/ค่ะ as appropriate).
 """
 )
 
-# %%
-agents = [user_proxy, waiter, cachier, guard]
-group_chat = GroupChat(agents=agents, messages=[], max_round=120)
-group_manager = GroupChatManager(
-    groupchat=group_chat,
-    llm_config=llm_config,
-    human_input_mode="NEVER"
+summary = AssistantAgent(
+    name="summary",
+    llm_config={
+        "config_list": config_list,
+        "temperature": 0.7,
+        "cache_seed": None,
+    },
+    description="create a summary of the order and total price, after the customer confirm the order",
+    system_message="""
+create a summary of the order and total priceใ
+After giving the total price, Say "ขอบคุณที่ใช้บริการครับ/ค่ะ" 
+
+Additional instructions:
+- Use polite and friendly language with customers.
+- If customers ask about something unrelated to food, inform them you can't provide that information.
+
+Always respond in Thai, using polite language (ending sentences with ครับ/ค่ะ as appropriate).
+""")
+
+def reflection_message(recipient, messages, sender, config):
+    return f"repeat the orders calculate the total using python code. \n\n {recipient.chat_messages_for_summary(sender)[-1]['content']}"
+
+
+nested_calculator = [
+    {"recipient": cachier, "message": reflection_message, "max_turns": 1},
+    {"recipient": summary, "message": "Summary the order and return the total price to the customer", "summary_method": "last_msg", "max_turns": 1},
+]
+
+
+groupchat = GroupChat(
+    agents=[waiter1, summary],
+    messages=[],
+    allow_repeat_speaker=False,
+    max_round=2,
 )
 
-user_proxy.initiate_chat(group_manager, message="สั่งอาหารหน่อยครับ")
+manager = GroupChatManager(
+    groupchat=groupchat,
+    is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+    llm_config={
+        "config_list": config_list,
+        "temperature": 0.7,
+        "cache_seed": None,
+    },
+)
+
+summary.register_nested_chats(
+    # เมื่อ manager ส่ง message ไปยัง summary ให้ summary ส่ง message ไปยัง cachier ก่อนจะ summary ข้อมูล และส่ง message ไปยัง customer
+    # ด้วยวิธีนี้เราสามารถ run โค้ดใน โดยที่ไม่ต้องส่งให้กับ ผู้ใช้งานได้
+    nested_calculator,
+    trigger=manager
+    )
+
+
+
+st.title("ร้านข้าวมันไก่ชาตรี - แชทบอทสั่งอาหาร")
+
+# Initialize agents
+if "assistant" not in st.session_state:
+    st.session_state.groupchat = groupchat
+    st.session_state.assistant = manager
+    st.session_state.user_proxy = user_proxy
+    
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "ข้าวมันไก่ชาตรีสวัสดีครับ วันนี้ต้องการสั่งอะไรบ้างครับ"}
+    ]
+
+# Display chat messages from history on app rerun
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Accept user input
+if prompt := st.chat_input("พิมพ์ข้อความของคุณที่นี่..."):
+    # Add user message to chat history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    # Display user message in chat message container
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    prompt = st.session_state.messages
+    # Generate assistant response
+    response = st.session_state.user_proxy.initiate_chat(
+            st.session_state.assistant,
+            message=str(prompt), 
+            summary_method= "last_msg"
+    )
+    assistant_response = st.session_state.groupchat.messages[-1]["content"]
+    
+    with st.chat_message("assistant"):
+        st.markdown(assistant_response)
+    # Add assistant response to chat history
+    st.session_state.messages.append({"role": "assistant", "content": assistant_response})
+
+
+# Add a button to clear the chat history
+if st.button("เริ่มการสนทนาใหม่"):
+    for key in st.session_state.keys():
+        del st.session_state[key]
+    st.rerun()
