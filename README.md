@@ -79,5 +79,5 @@ print(model.generate_content("Why is sky blue?"))
 *AutoGen documentation*:
 https://microsoft.github.io/autogen/docs/Getting-Started
 
-*Autogen Example codes*:
+*AutoGen example codes*:
 https://microsoft.github.io/autogen/docs/Examples/#automated-multi-agent-chat
