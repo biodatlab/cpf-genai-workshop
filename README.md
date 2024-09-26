@@ -74,3 +74,10 @@ aiplatform.init(project=project_name, credentials=credentials)
 model = GenerativeModel("gemini-1.5-flash-001")
 print(model.generate_content("Why is sky blue?"))
 ```
+### Reference Agent
+
+*AutoGen documentation*:
+https://microsoft.github.io/autogen/docs/Getting-Started
+
+*Autogen Example codes*:
+https://microsoft.github.io/autogen/docs/Examples/#automated-multi-agent-chat

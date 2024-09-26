@@ -40,7 +40,7 @@ waiter1 = AssistantAgent(
         "temperature": 0.7,
         "cache_seed": None,
     },
-    system_message="""
+    system_message=f"""
 You are a waiter1 at a restaurant. Your duties are:
 1. Take orders from customers.
 2. Recommend menu items.
@@ -68,7 +68,7 @@ cachier = AssistantAgent(
         "cache_seed": None,
     },
     description="A cashier at a restaurant",
-    system_message="""
+    system_message=f"""
 You are a cashier at a restaurant. Your duties are:
 1. Recieve orders from waiters.
 2. Calculate the total price of food ordered by customers using given menu and prices.
